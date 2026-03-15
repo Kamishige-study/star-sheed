@@ -1,0 +1,344 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.wrap { padding: 1.5rem 0; max-width: 560px; margin: 0 auto; }
+.title { font-size: 20px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 2rem; }
+.progress-bar { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; margin-bottom: 2rem; }
+.progress-fill { height: 3px; background: #7F77DD; border-radius: 2px; transition: width 0.4s ease; }
+.q-num { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; }
+.q-text { font-size: 17px; font-weight: 500; color: var(--color-text-primary); line-height: 1.5; margin-bottom: 1.5rem; }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 14px 18px; font-size: 15px; color: var(--color-text-primary); cursor: pointer; text-align: left; transition: all 0.15s; line-height: 1.5; }
+.opt:hover { background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+.opt.selected { border-color: #7F77DD; background: #EEEDFE; color: #3C3489; }
+.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+.btn { border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); border-radius: var(--border-radius-md); padding: 10px 20px; font-size: 14px; color: var(--color-text-primary); cursor: pointer; }
+.btn:hover { background: var(--color-background-secondary); }
+.btn-primary { background: #534AB7; color: #EEEDFE; border-color: #534AB7; }
+.btn-primary:hover { background: #3C3489; }
+.btn:disabled { opacity: 0.3; cursor: default; }
+.result { display: none; }
+.result-header { text-align: center; padding: 2rem 0 1.5rem; }
+.star-badge { font-size: 13px; color: #534AB7; background: #EEEDFE; border-radius: 20px; padding: 4px 14px; display: inline-block; margin-bottom: 12px; }
+.result-title { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+.result-tagline { font-size: 15px; color: var(--color-text-secondary); line-height: 1.6; }
+.bars { margin: 1.5rem 0; }
+.bar-row { margin-bottom: 14px; }
+.bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+.bar-name { color: var(--color-text-primary); font-weight: 500; }
+.bar-pct { color: var(--color-text-secondary); }
+.bar-track { height: 8px; background: var(--color-border-tertiary); border-radius: 4px; }
+.bar-fill { height: 8px; border-radius: 4px; transition: width 1s ease; }
+.msg-card { background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin: 1.5rem 0; }
+.msg-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; }
+.msg-text { font-size: 15px; color: var(--color-text-primary); line-height: 1.7; }
+.share-btn { width: 100%; padding: 14px; background: #534AB7; color: #EEEDFE; border: none; border-radius: var(--border-radius-lg); font-size: 15px; cursor: pointer; margin-top: 1rem; }
+.share-btn:hover { background: #3C3489; }
+.restart { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: var(--color-text-tertiary); cursor: pointer; text-decoration: underline; }
+</style>
+
+<div class="wrap">
+  <div id="quiz-section">
+    <div class="title">あなたはどの星から来た魂？</div>
+    <div class="subtitle">直感で選んでください。正解はありません。</div>
+    <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    <div class="q-num" id="qnum">1 / 25</div>
+    <div class="q-text" id="qtext"></div>
+    <div class="options" id="opts"></div>
+    <div class="nav">
+      <button class="btn" id="prev-btn" onclick="prev()" disabled>← もどる</button>
+      <button class="btn btn-primary" id="next-btn" onclick="next()" disabled>つぎへ →</button>
+    </div>
+  </div>
+  <div class="result" id="result-section">
+    <div class="result-header">
+      <div class="star-badge" id="r-badge"></div>
+      <div class="result-title" id="r-title"></div>
+      <div class="result-tagline" id="r-tagline"></div>
+    </div>
+    <div class="bars" id="r-bars"></div>
+    <div class="msg-card">
+      <div class="msg-label">あなたへのことば</div>
+      <div class="msg-text" id="r-msg"></div>
+    </div>
+    <button class="share-btn" onclick="shareResult()">結果をコピーしてシェア</button>
+    <span class="restart" onclick="restart()">もう一度やってみる</span>
+  </div>
+</div>
+
+<script>
+const Qs = [
+  { q: "自然の中にいるとき、何を感じますか？", opts: [
+    { t: "大きなものに包まれている", s: {L:3,P:1} },
+    { t: "愛されている、つながっている", s: {P:3,A:1} },
+    { t: "真実が見えてくる気がする", s: {Si:3,L:1} },
+    { t: "静かに、ただいる", s: {L:2,A:2} }
+  ]},
+  { q: "誰かと話しているとき、自分が多くやっていることは？", opts: [
+    { t: "相手の感情を感じ取る", s: {P:3,A:1} },
+    { t: "構造や矛盾を見つける", s: {Si:3,L:1} },
+    { t: "ただ聴いている", s: {L:2,A:2} },
+    { t: "本質を一言で言いたくなる", s: {L:3,Si:1} }
+  ]},
+  { q: "あなたにとって「豊かさ」とは？", opts: [
+    { t: "感情が豊かに動くこと", s: {P:3,A:1} },
+    { t: "知識と洞察があること", s: {Si:3,L:1} },
+    { t: "今この瞬間に満ちていること", s: {L:3,A:1} },
+    { t: "癒しを与え合えること", s: {A:3,P:1} }
+  ]},
+  { q: "あなたの怒りは、どんなときに出ますか？", opts: [
+    { t: "不公平や嘘を見たとき", s: {Si:3,L:1} },
+    { t: "大切な人が傷ついたとき", s: {P:3,A:1} },
+    { t: "自由を奪われたとき", s: {An:3,L:1} },
+    { t: "あまり怒らない、ただ静かになる", s: {L:3,A:1} }
+  ]},
+  { q: "眠れない夜、頭にあることは？", opts: [
+    { t: "誰かのことが心配", s: {P:3,A:1} },
+    { t: "世界の仕組みへの問い", s: {Si:3,L:1} },
+    { t: "特にない。ただ静かにいる", s: {L:3} },
+    { t: "もっと自由でありたいという感覚", s: {An:3,L:1} }
+  ]},
+  { q: "子どもの頃、何に夢中になっていましたか？", opts: [
+    { t: "空や星を眺めること", s: {L:3,Si:1} },
+    { t: "友達の悩みを聴くこと", s: {P:3,A:1} },
+    { t: "なぜ？と問い続けること", s: {Si:3,An:1} },
+    { t: "一人で土や自然に触れること", s: {L:3,A:1} }
+  ]},
+  { q: "あなたが「正しい」と感じる情報源は？", opts: [
+    { t: "体で感じる感覚", s: {L:3,A:1} },
+    { t: "心が動くかどうか", s: {P:3} },
+    { t: "論理的に筋が通っているか", s: {Si:3} },
+    { t: "なんとなく、そうかなという直感", s: {L:2,An:2} }
+  ]},
+  { q: "あなたは「変化」についてどう感じますか？", opts: [
+    { t: "自然の流れに任せる", s: {L:3,A:1} },
+    { t: "必要な変化は積極的に動く", s: {Si:3,An:1} },
+    { t: "ゆっくり、でも確実に", s: {A:3,P:1} },
+    { t: "変化そのものより、在り方が大事", s: {L:3,Si:1} }
+  ]},
+  { q: "人に何かを伝えるとき、大切にしていることは？", opts: [
+    { t: "相手の心に届くかどうか", s: {P:3,A:1} },
+    { t: "正確さと誠実さ", s: {Si:3,L:1} },
+    { t: "言葉より存在で伝わればいい", s: {L:3} },
+    { t: "その人の自由を尊重すること", s: {An:3,L:1} }
+  ]},
+  { q: "あなたにとって「癒し」とは？", opts: [
+    { t: "土や水、自然の中にいること", s: {L:3,A:1} },
+    { t: "深い対話と理解", s: {P:3,Si:1} },
+    { t: "静かに一人でいること", s: {L:3} },
+    { t: "誰かの笑顔を見ること", s: {P:3,A:1} }
+  ]},
+  { q: "「使命」という言葉に対して、どう感じますか？", opts: [
+    { t: "肩に力が入る気がして、少し距離を置く", s: {L:3} },
+    { t: "自然と体が動くことがそれだと思う", s: {L:2,A:2} },
+    { t: "はっきり感じている", s: {Si:3,An:1} },
+    { t: "愛することが使命だと感じる", s: {P:3,A:1} }
+  ]},
+  { q: "あなたはなぜ、今ここにいると思いますか？", opts: [
+    { t: "何か大事な役割がある気がする", s: {Si:3,An:1} },
+    { t: "愛を学び、分かち合うため", s: {P:3,A:1} },
+    { t: "わからないけど、ただいる", s: {L:3} },
+    { t: "自分の魂が選んだから", s: {An:3,L:1} }
+  ]},
+  { q: "「支配」や「権力」に対して、あなたは？", opts: [
+    { t: "静かに、距離を置く", s: {L:3,An:1} },
+    { t: "構造を分析して、問いを立てる", s: {Si:3,L:1} },
+    { t: "傷つく人のそばに寄り添う", s: {P:3,A:1} },
+    { t: "自分が自由でいることで対抗する", s: {An:3,L:1} }
+  ]},
+  { q: "あなたにとって「神」や「宇宙」のイメージは？", opts: [
+    { t: "すべてに宿っている何か", s: {L:3,P:1} },
+    { t: "秩序と真理の源", s: {Si:3,L:1} },
+    { t: "愛そのもの", s: {P:3,A:1} },
+    { t: "言葉にできない、ただ在るもの", s: {L:3} }
+  ]},
+  { q: "あなたが一番心地よいのは？", opts: [
+    { t: "一人で土や自然に触れているとき", s: {L:3,A:1} },
+    { t: "深い話ができる誰かといるとき", s: {P:3,Si:1} },
+    { t: "真実を探っているとき", s: {Si:3,An:1} },
+    { t: "制約なく自由でいるとき", s: {An:3,L:1} }
+  ]},
+  { q: "「光と闇」について、あなたはどう思いますか？", opts: [
+    { t: "どちらも必要な、一つのもの", s: {L:3,Si:1} },
+    { t: "闇の中にも愛がある", s: {P:3,A:1} },
+    { t: "統合されれば対立は消える", s: {L:3,An:1} },
+    { t: "真実を知ることで闇は薄れる", s: {Si:3,L:1} }
+  ]},
+  { q: "あなたにとって「行動する」とは？", opts: [
+    { t: "ただ在ることで、それが行動になる", s: {L:3} },
+    { t: "感じた愛を表現すること", s: {P:3,A:1} },
+    { t: "見えた真実を形にすること", s: {Si:3,An:1} },
+    { t: "土を耕すように、地道に続けること", s: {A:3,L:1} }
+  ]},
+  { q: "「つながり」について、大切にしていることは？", opts: [
+    { t: "押し付けず、ただそこにいる", s: {L:3,P:1} },
+    { t: "共鳴した人と自然につながる", s: {L:2,An:2} },
+    { t: "深く、少数と", s: {P:3,Si:1} },
+    { t: "在り方が伝わればそれでいい", s: {L:3,A:1} }
+  ]},
+  { q: "あなたは「特別な存在」という言葉を聞いてどう思いますか？", opts: [
+    { t: "みんなが特別だと思う", s: {P:3,L:1} },
+    { t: "違和感がある。ただ在ればいい", s: {L:3} },
+    { t: "その言葉で人を動かそうとしている気がする", s: {Si:3,An:1} },
+    { t: "自分の中に何かがある気はする", s: {An:2,L:2} }
+  ]},
+  { q: "何かを「学ぶ」とき、あなたは？", opts: [
+    { t: "体で感じて、腑に落ちるまで待つ", s: {L:3,A:1} },
+    { t: "心が動いたら本物だと思う", s: {P:3,L:1} },
+    { t: "構造を理解してから動く", s: {Si:3} },
+    { t: "直感と論理を両方使う", s: {L:2,Si:2} }
+  ]},
+  { q: "「ミロクの世」「地上天国」のようなビジョンに対して？", opts: [
+    { t: "一人ひとりが気づくことで自然に現れると思う", s: {L:3,P:1} },
+    { t: "愛が広がれば実現すると感じる", s: {P:3,A:1} },
+    { t: "仕組みを変えることが必要だと思う", s: {Si:3,An:1} },
+    { t: "すでに今ここに始まっている", s: {L:3} }
+  ]},
+  { q: "あなたが一番静かになれる時間は？", opts: [
+    { t: "土や植物に触れているとき", s: {L:3,A:1} },
+    { t: "空を見上げているとき", s: {L:2,P:2} },
+    { t: "一人で深く考えているとき", s: {Si:3,L:1} },
+    { t: "何もしていない、ただいるとき", s: {L:3} }
+  ]},
+  { q: "あなたにとって「おだやか」とは？", opts: [
+    { t: "今ここにいると感じられる状態", s: {L:3} },
+    { t: "愛に満たされている感覚", s: {P:3,A:1} },
+    { t: "真実の上に立っている安心感", s: {Si:3,L:1} },
+    { t: "何にも縛られていない自由", s: {An:3,L:1} }
+  ]},
+  { q: "あなたが地球に来た理由があるとしたら？", opts: [
+    { t: "在ることを思い出すため", s: {L:3} },
+    { t: "愛を体験し、分かち合うため", s: {P:3,A:1} },
+    { t: "真実を見つけ、伝えるため", s: {Si:3,An:1} },
+    { t: "自由な在り方を示すため", s: {An:3,L:1} }
+  ]},
+  { q: "最後に。今この瞬間、あなたは？", opts: [
+    { t: "ただ、ここにいる", s: {L:3} },
+    { t: "誰かのことを想っている", s: {P:3,A:1} },
+    { t: "何かを探している", s: {Si:2,An:2} },
+    { t: "静かに、流れに任せている", s: {L:2,A:2} }
+  ]}
+];
+
+const STARS = {
+  L: { name: "ライラ", color: "#534AB7", light: "#EEEDFE", desc: "源の魂" },
+  P: { name: "プレアデス", color: "#0F6E56", light: "#E1F5EE", desc: "愛の魂" },
+  Si: { name: "シリウス", color: "#185FA5", light: "#E6F1FB", desc: "知の魂" },
+  A: { name: "アルクトゥルス", color: "#854F0B", light: "#FAEEDA", desc: "癒しの魂" },
+  An: { name: "アンドロメダ", color: "#993556", light: "#FBEAF0", desc: "自由の魂" }
+};
+
+const MSGS = {
+  L: "あなたはおそらく、この宇宙で最も古い記憶を持つ魂です。ただ在ることの中に、すべての答えがある。それをすでに知っています。言葉より先に、土の上でそれを生きています。",
+  P: "あなたの愛は、主張しない。ただそこにいるだけで、誰かの何かが動く。それがプレアデスの愛の形です。感じる力こそが、あなたの本質です。",
+  Si: "真実を見抜く目と、構造を読む知性。あなたはそれを使命として持ってきました。でも最も深い真実は、論理の向こうにある静けさの中にあります。",
+  A: "あなたは癒しそのものです。特別な言葉も技術もいらない。ただあなたがそこにいることで、場が整っていきます。土を耕すように、静かに続けてください。",
+  An: "あなたは自由の体現者です。型にはめられることを魂が拒んでいる。それは正しい。あなたが自由でいることで、周りの人も自由を思い出します。"
+};
+
+let current = 0, answers = [];
+
+function render() {
+  const q = Qs[current];
+  document.getElementById('qnum').textContent = `${current+1} / ${Qs.length}`;
+  document.getElementById('prog').style.width = `${(current/Qs.length)*100}%`;
+  document.getElementById('qtext').textContent = q.q;
+  const opts = document.getElementById('opts');
+  opts.innerHTML = '';
+  q.opts.forEach((o,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt' + (answers[current]===i?' selected':'');
+    btn.textContent = o.t;
+    btn.onclick = () => {
+      answers[current] = i;
+      document.querySelectorAll('.opt').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('next-btn').disabled = false;
+    };
+    opts.appendChild(btn);
+  });
+  document.getElementById('prev-btn').disabled = current===0;
+  document.getElementById('next-btn').disabled = answers[current]===undefined;
+  document.getElementById('next-btn').textContent = current===Qs.length-1 ? '結果を見る ✦' : 'つぎへ →';
+}
+
+function next() {
+  if(answers[current]===undefined) return;
+  if(current===Qs.length-1) { showResult(); return; }
+  current++;
+  render();
+}
+
+function prev() {
+  if(current>0){ current--; render(); }
+}
+
+function showResult() {
+  const scores = {L:0,P:0,Si:0,A:0,An:0};
+  answers.forEach((a,qi) => {
+    if(a===undefined) return;
+    const s = Qs[qi].opts[a].s;
+    Object.entries(s).forEach(([k,v]) => scores[k]+=v);
+  });
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  const top = sorted[0][0];
+  const pcts = {};
+  sorted.forEach(([k,v])=>pcts[k]=Math.round(v/total*100));
+
+  document.getElementById('quiz-section').style.display='none';
+  const rs = document.getElementById('result-section');
+  rs.style.display='block';
+
+  document.getElementById('r-badge').textContent = STARS[top].desc;
+  document.getElementById('r-badge').style.background = STARS[top].light;
+  document.getElementById('r-badge').style.color = STARS[top].color;
+  document.getElementById('r-title').textContent = `${STARS[top].name}の魂`;
+  document.getElementById('r-tagline').textContent = `あなたの魂の根っこは、${STARS[top].name}にあります。`;
+
+  const bars = document.getElementById('r-bars');
+  bars.innerHTML = '';
+  sorted.forEach(([k,v]) => {
+    const pct = pcts[k];
+    if(pct===0) return;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `<div class="bar-label"><span class="bar-name">${STARS[k].name}</span><span class="bar-pct">${pct}%</span></div><div class="bar-track"><div class="bar-fill" style="width:0%;background:${STARS[k].color}" data-w="${pct}"></div></div>`;
+    bars.appendChild(row);
+  });
+  setTimeout(()=>{
+    document.querySelectorAll('.bar-fill').forEach(b=>{
+      b.style.width=b.dataset.w+'%';
+    });
+  },100);
+
+  document.getElementById('r-msg').textContent = MSGS[top];
+  window._lastResult = { top, pcts, scores };
+}
+
+function shareResult() {
+  const r = window._lastResult;
+  if(!r) return;
+  const sorted = Object.entries(r.pcts).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0);
+  let text = `✦ 魂の由来診断 ✦\n\n`;
+  text += `わたしは「${STARS[r.top].name}の魂」でした\n\n`;
+  sorted.forEach(([k,v])=>{ text+=`${STARS[k].name}：${v}%\n`; });
+  text += `\nあなたはどこの星から来た魂？\nぜひやってみてね。`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('.share-btn');
+    btn.textContent='コピーしました！';
+    setTimeout(()=>btn.textContent='結果をコピーしてシェア',2000);
+  });
+}
+
+function restart() {
+  current=0; answers=[];
+  document.getElementById('result-section').style.display='none';
+  document.getElementById('quiz-section').style.display='block';
+  render();
+}
+
+render();
+</script>
